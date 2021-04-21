@@ -5,11 +5,6 @@ import functools
 
 start = time.time()
 
-@functools.lru_cache(maxsize=None)
-def rho_bar(i, j):
-    return sigma**2 * min(t[i], t[j])
-
-
 # Need only m(1)?
 def m(zz):
     return 2 * np.log(U1) - 0.5 * np.log(U2(zz))
@@ -23,7 +18,7 @@ def v(zz):
 
 @functools.lru_cache(maxsize=None)
 def U2(zz):
-    return sum([S_bar[i] * S_bar[j] * np.exp(zz * rho_bar(i, j)) for i in range(N) for j in range(N)])
+    return sum([S_bar[i] * S_bar[j] * np.exp(zz * rho_bar[i, j]) for i in range(N) for j in range(N)])
 
 
 def a1(z):
@@ -114,26 +109,24 @@ S_bar = chi * S * np.exp(g * t)
 
 U1 = np.sum(S_bar)
 
+rho_bar = sigma**2 * np.array([t[min(i, j)] for i in range(N) for j in range(N)]).reshape((N, N))
 
 U2_0 = sum([S_bar[i] * S_bar[j] for i in range(N) for j in range(N)])
-dU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar(i, j) for i in range(N) for j in range(N)])
-ddU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar(i, j)**2 for i in range(N) for j in range(N)])
-dddU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar(i, j)**3 for i in range(N) for j in range(N)])
+dU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar[i, j] for i in range(N) for j in range(N)])
+ddU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar[i, j]**2 for i in range(N) for j in range(N)])
+dddU2_0 = sum([S_bar[i] * S_bar[j] * rho_bar[i, j]**3 for i in range(N) for j in range(N)])
 
 
 # 2.2 The Efficiency of the Approximation
-@functools.lru_cache(maxsize=None)
-def A_bar(k):
-    return sum([S_bar[i] * rho_bar(i, k) for i in range(N)])
-@functools.lru_cache(maxsize=None)
-def rho_star(i, j):
-    return np.sqrt(S_bar[i]) * rho_bar(i, j) * np.sqrt(S_bar[j])
+A_bar = np.multiply(rho_bar, S_bar[:, np.newaxis]).sum(axis=0)
+rho_star = np.array([np.sqrt(S_bar[i]) * rho_bar[i, j] * np.sqrt(S_bar[j]) for i in range(N) for j in range(N)]).reshape((N, N))
+
 E = {
-    "A'2(0)A''(0)": 2 * sum([S_bar[k] * A_bar(k)**2 for k in range(N)]),
-    "A'2(0)A''2(0)": 8 * sum([A_bar(k) * S_bar[k] * rho_bar(k, l) * S_bar[l] * A_bar(l) for k in range(N) for l in range(N)]) + 2*dU2_0*ddU2_0,
-    "A'3(0)A(3)(0)": 6 * sum([S_bar[l] * A_bar(l)**3 for l in range(N)]),
-    "A'(0)A''(0)A(3)(0)": 6 * sum([S_bar[j] * rho_bar(j, k)**2 * S_bar[k] * A_bar(k) for j in range(N) for k in range(N)]),
-    "A''3(0)": 8 * sum([rho_star(i, j) * rho_star(j, k) * rho_star(k, i) for i in range(N) for j in range(N) for k in range(N)])
+    "A'2(0)A''(0)": 2 * np.sum(S_bar * A_bar**2),
+    "A'2(0)A''2(0)": 8 * sum([A_bar[k] * S_bar[k] * rho_bar[k, l] * S_bar[l] * A_bar[l] for k in range(N) for l in range(N)]) + 2*dU2_0*ddU2_0,
+    "A'3(0)A(3)(0)": 6 * np.sum(S_bar * A_bar**3),
+    "A'(0)A''(0)A(3)(0)": 6 * sum([S_bar[j] * rho_bar[j, k]**2 * S_bar[k] * A_bar[k] for j in range(N) for k in range(N)]),
+    "A''3(0)": 8 * sum([rho_star[i, j] * rho_star[j, k] * rho_star[k, i] for i in range(N) for j in range(N) for k in range(N)])
 }
 
 z1 = d2(1) - d3(1) + d4(1)
@@ -144,9 +137,7 @@ y = np.log(K)
 y1 = (m(1) - y) / np.sqrt(v(1)) + np.sqrt(v(1))
 y2 = y1 - np.sqrt(v(1))
 
-a = (U1 * np.exp(-r * T) * norm.cdf(y1) - K * np.exp(-r * T) * norm.cdf(y2))
-b = np.exp(-r * T) * K * (z1 * p(y) + z2 * dp(y) + z3 * ddp(y))
-BC = a + b
+BC = (U1 * np.exp(-r * T) * norm.cdf(y1) - K * np.exp(-r * T) * norm.cdf(y2)) + np.exp(-r * T) * K * (z1 * p(y) + z2 * dp(y) + z3 * ddp(y))
 end = time.time()
 print(f"Executed in {round(end - start, 1)} seconds")
 pass
