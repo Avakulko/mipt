@@ -4,7 +4,7 @@ from scipy.stats import norm
 import time
 
 
-def asian_call(S, K, sigma, T, r, delta):
+def asian_call(S0, K, sigma, T, r, delta):
 
     def a1(z):
         return -(z ** 2 * dU2_0) / (2 * U2_0)
@@ -70,7 +70,7 @@ def asian_call(S, K, sigma, T, r, delta):
     t = np.linspace(start=0, stop=T, num=N)
     # t, dt = np.linspace(start=0, stop=T, num=N, endpoint=False, retstep=True)
     # t += dt
-    S_bar = chi * S * np.exp(g * t).reshape(1, -1)
+    S_bar = chi * S0 * np.exp(g * t).reshape(1, -1)
     i = np.arange(N).reshape(-1, 1)
     j = i.T
     rho_bar = sigma ** 2 * t[np.minimum(i, j)]
@@ -111,7 +111,7 @@ def asian_call(S, K, sigma, T, r, delta):
 
 if __name__ == '__main__':
 
-    S = 100
+    S0 = 100
     sigma = 0.2
     sigmas = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
     K = 100
@@ -121,8 +121,6 @@ if __name__ == '__main__':
     r = 0.09
     delta = 0
 
-    asian_call(S, K, sigma, T, r, delta)
-
     # Table 4
     # Pricing Asian and Basket Options Via Taylor Expansion
     Cs = list()
@@ -130,4 +128,4 @@ if __name__ == '__main__':
     for sigma in sigmas:
         for K in Ks:
             start = time.time()
-            print((sigma, K), round(asian_call(S, K, sigma, T, r, delta), 4))
+            print((sigma, K), round(asian_call(S0, K, sigma, T, r, delta), 4))
