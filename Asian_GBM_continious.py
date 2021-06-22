@@ -65,27 +65,44 @@ if __name__ == '__main__':
     #         start = time.time()
     #         print((sigma, K), round(asian_call(S, K, sigma, T, r, delta), 4))
 
-    import pandas as pd
+    # ##############################
+    # import pandas as pd
 
-    # При alpha = 0 совпадает с Монте-Карло в случае когда F = S0 e^{rT}
+    # # При alpha = 0 совпадает с Монте-Карло в случае когда F = S0 e^{rT}
+    # t0 = pd.to_datetime('2015-04-23')
+    # # t0 = pd.to_datetime('2000-12-18')
+    # temp = pd.read_csv("Data/DCOILWTICO.csv", index_col='DATE', parse_dates=True)
+    # S0 = float(temp.loc[t0]['DCOILWTICO'])
+    # T = 1
+    # K = 20
+    # r = 0.05
+    # sigma = 0.5
+    # delta = 0
+    # print(asian_call(S0, K, sigma, T, r, delta))
+    # asian_mc = list()
+    # asian_approx = list()
+    # for T in range(1, 4):
+    #     asian_mc.append(MC_asian_LNMR(t0, S0, K, sigma, T, r, alpha=0, nsim=1000000))
+    #     asian_approx.append(asian_call(S0, K, sigma, T, r, delta))
+    #
+    # plt.plot(asian_mc)
+    # plt.plot(asian_approx)
+    # plt.show()
+    # print(asian_mc)
+    # print(asian_approx)
+
+    import pandas as pd
+    from MonteCarlo import MC_asian_LNMR
+
     t0 = pd.to_datetime('2015-04-23')
     # t0 = pd.to_datetime('2000-12-18')
     temp = pd.read_csv("Data/DCOILWTICO.csv", index_col='DATE', parse_dates=True)
     S0 = float(temp.loc[t0]['DCOILWTICO'])
-    T = 1
+    sigma = 0.3
     K = 20
+    T = 1
     r = 0.05
-    sigma = 0.5
     delta = 0
-    print(asian_call(S0, K, sigma, T, r, delta))
-    asian_mc = list()
-    asian_approx = list()
-    for T in range(1, 4):
-        asian_mc.append(MC_asian_LNMR(t0, S0, K, sigma, T, r, alpha=0, nsim=1000000))
-        asian_approx.append(asian_call(S0, K, sigma, T, r, delta))
-
-    plt.plot(asian_mc)
-    plt.plot(asian_approx)
-    plt.show()
-    print(asian_mc)
-    print(asian_approx)
+    N = 252
+    AC = asian_call(S0, K, sigma, T, r, delta)
+    print(AC)

@@ -1,10 +1,25 @@
 import numpy as np
-np.random.seed(422)
 from scipy.stats import norm
-import time
 
 
-def asian_call(S, K, sigma, T, r, delta):
+def asian_call(N, S0, K, sigma, alpha, T, r):
+    def a1(z):
+        return -(z ** 2 * dU2_0) / (2 * U2_0)
+
+    def a2(z):
+        return 2 * a1(z) ** 2 - (z ** 4 * ddU2_0) / (2 * U2_0)
+
+    def b1(z):
+        return z ** 4 / (4 * U1 ** 3) * E["A'2(0)A''(0)"]
+
+    def b2(z):
+        return a1(z) ** 2 - 1 / 2 * a2(z)
+
+    def d2(z):
+        return 1 / 2 * (10 * a1(z) ** 2 + a2(z) - 6 * b1(z) + 2 * b2(z))
+
+    def d3(z):
+        return 2 * a1(z) ** 2 - b1(z)
 
     def p(y):
         return norm.pdf(y, loc=m_1, scale=np.sqrt(v_1))
@@ -12,19 +27,30 @@ def asian_call(S, K, sigma, T, r, delta):
     def dp(y):
         return p(y) * (m_1 - y) / v_1
 
-    def ddp(y):
-        return (dp(y) * (m_1 - y) - p(y)) / v_1
+    t = np.linspace(start=0, stop=T, num=T * N)
+    i = np.arange(len(t)).reshape(-1, 1)
+    j = i.T
 
-    g = r - delta
+    # s = 0
+    # for i in range(len(t)):
+    #     for j in range(len(t)):
+    #         s += np.exp((sigma ** 2) / (2 * alpha) * (
+    #                 np.exp(-alpha * (max(t[i], t[j]) - min(t[i], t[j]))) - np.exp(-alpha * (t[i] + t[j]))))
+    # U2_1 = S0 ** 2 / (N ** 2) * s
 
-    # В статье U1 и U2 посчитаны с ошибками. Ниже приведены верные формулы
-    U1 = S/(g*T) * (np.exp(g*T) - 1)
-    U2_1 = 2*S**2/((g + sigma**2)*T) * ((np.exp((2*g + sigma**2)*T) - 1) / ((2*g + sigma**2)*T) - (np.exp(g*T) - 1)/(g*T))
+    U1 = S0
+    U2_0 = S0**2
+    U2_1 = S0 ** 2 / (N ** 2) * np.sum(np.exp((sigma ** 2) / (2 * alpha) * (np.exp(-alpha * (t[np.maximum(i, j)] - t[np.minimum(i, j)])) - np.exp(-alpha * (t.reshape(1, -1) + t.reshape(1, -1).T)))))
+    # U2_1 = S0 ** 2 / (N ** 2) * np.sum(np.exp((sigma ** 2) / (2 * alpha) * (np.exp(-alpha * (t[np.maximum(i, j)] - t[np.minimum(i, j)])) - np.exp(-alpha * (t.reshape(1, -1) + t.reshape(1, -1).T)))))
+    dU2_0 = S0**2 * (sigma**2 / (2*alpha)) * ((4*np.exp(-alpha*T) - np.exp(-2*alpha*T) - 3)/(alpha**2 * T**2) + 2/(alpha*T))
+    ddU2_0 = S0**2 * (sigma**4 / (4*alpha**2)) * (4*alpha*T + 8*alpha*np.exp(-2*alpha*T)*T + 4*np.exp(-2*alpha*T) + np.exp(-4*alpha*T) - 5) / (4 * alpha**2 * T**2)
 
-    x = g * T
-    z1 = -sigma**4 * T**2 * (1/45 + x/180 - 11*x**2/15120 - x**3/2520 + x**4/113400) - sigma**6 * T**3 * (1/11340 - 13*x/30240 - 17*x**2/226800 + 23*x**3/453600 + 59*x**4/5987520)
-    z2 = -sigma**4 * T**2 * (1/90 + x/360 - 11*x**2/30240 - x**3/5040 + x**4/226800) + sigma**6 * T**3 * (31/22680 + 11*x/60480 - 37*x**2/151200 - 19*x**3/302400 + 953*x**4/59875200)
-    z3 = sigma**6 * T**3 * (2/2835 - x/60480 - 2*x**2/14175 - 17*x**3/907200 + 13*x**4/1247400)
+    E = {
+        "A'2(0)A''(0)": S0**3 * (sigma**4 / alpha**2) * (8*alpha*T + 8*np.exp(-alpha*T)*alpha*T - 4*np.exp(-2*alpha*T)*alpha*T + 4*np.exp(-3*alpha*T) + 28*np.exp(-alpha*T) - np.exp(-4*alpha*T) - 12*np.exp(-2*alpha*T) -19) / (4 * alpha**3 * T**3),
+    }
+
+    z1 = d2(1) - d3(1)
+    z2 = d3(1)
 
     m_1 = 2 * np.log(U1) - 0.5 * np.log(U2_1)
     v_1 = np.log(U2_1) - 2 * np.log(U1)  # Дисперсия
@@ -32,37 +58,29 @@ def asian_call(S, K, sigma, T, r, delta):
     y1 = (m_1 - y) / np.sqrt(v_1) + np.sqrt(v_1)
     y2 = y1 - np.sqrt(v_1)
 
-    BC = (U1 * np.exp(-r * T) * norm.cdf(y1) - K * np.exp(-r * T) * norm.cdf(y2)) + np.exp(-r * T) * K * (z1 * p(y) + z2 * dp(y) + z3 * ddp(y))
+    BC = (U1 * np.exp(-r * T) * norm.cdf(y1) - K * np.exp(-r * T) * norm.cdf(y2)) + np.exp(-r * T) * K * (
+            z1 * p(y) + z2 * dp(y))
 
     return BC
 
 
 if __name__ == '__main__':
 
-    # S = 100
-    # sigma = 0.2
-    # sigmas = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
-    # K = 100
-    # Ks = [95, 100, 105]
-    # T = 3
-    # Ts = [1, 2, 3, 4, 5]
-    # r = 0.09
-    # delta = 0
-    #
-    # # Table 2
-    # # Pricing Asian and Basket Options Via Taylor Expansion
-    # for sigma in sigmas:
-    #     for K in Ks:
-    #         start = time.time()
-    #         print((sigma, K), round(asian_call(S, K, sigma, T, r, delta), 4))
+    import pandas as pd
+    from MonteCarlo import MC_asian_LNMR
 
-    S = 100
+    t0 = pd.to_datetime('2015-04-23')
+    # t0 = pd.to_datetime('2018-04-23')
+    # t0 = pd.to_datetime('2000-12-18')
+    temp = pd.read_csv("Data/DCOILWTICO.csv", index_col='DATE', parse_dates=True)
+    S0 = float(temp.loc[t0]['DCOILWTICO'])
+    sigma = 0.4
+    K = 40
     T = 1
-    K = 100
     r = 0.05
-    alpha = 0.5 * 0
-    sigma = 0.5
-    delta = 0
-    print(asian_call(S, K, sigma, T, r, delta))
-    21.86402923568494
-    12.355488109354123
+    N = 252
+    alpha = 0.00005
+    AC = asian_call(N, S0, K, sigma, alpha, T, r)
+    print(f'Approximation = {AC}')
+    MC = MC_asian_LNMR(t0, S0, K, sigma, alpha, T, r, nsim=10000, N=252)
+    print(f'Monte-Carlo = {MC}')

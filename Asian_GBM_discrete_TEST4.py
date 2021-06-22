@@ -13,7 +13,7 @@ def asian_call(N, S0, K, sigma, T, r, delta):
         return 2 * a1(z) ** 2 - (z ** 4 * ddU2_0) / (2 * U2_0)
 
     def a3(z):
-        return 6 * a1(z) * a2(z) - 4 * a1(z) ** 3 - (z ** 6 * dddU2_0) / (2 * U2_0)
+        return 0
 
     def b1(z):
         return z ** 4 / (4 * U1 ** 3) * E["A'2(0)A''(0)"]
@@ -22,18 +22,18 @@ def asian_call(N, S0, K, sigma, T, r, delta):
         return a1(z) ** 2 - 1 / 2 * a2(z)
 
     def c1(z):
-        return -a1(z) * b1(z)
+        return 0
 
     # U1=A(0)
     def c2(z):
-        return z ** 6 / (144 * U1 ** 4) * (9 * E["A'2(0)A''2(0)"] + 4 * E["A'3(0)A(3)(0)"])
+        return 0
 
     # U1=A(0)
     def c3(z):
-        return z ** 6 / (48 * U1 ** 3) * (4 * E["A'(0)A''(0)A(3)(0)"] + E["A''3(0)"])
+        return 0
 
     def c4(z):
-        return a1(z) * a2(z) - 2 / 3 * a1(z) ** 3 - 1 / 6 * a3(z)
+        return 0
 
     # Не участвует в расчетах
     # d1(1) - d2(1) + d3(1) - d4(1) == 0
@@ -79,17 +79,17 @@ def asian_call(N, S0, K, sigma, T, r, delta):
     U2_0 = np.sum(S_bar * S_bar.T)
     dU2_0 = np.sum(S_bar * S_bar.T * rho_bar)
     ddU2_0 = np.sum(S_bar * S_bar.T * rho_bar ** 2)
-    dddU2_0 = np.sum(S_bar * S_bar.T * rho_bar ** 3)
+    dddU2_0 = 0
 
     # 2.2 The Efficiency of the Approximation
     A_bar = np.sum(S_bar * rho_bar, axis=1)
     rho_star = np.sqrt(S_bar) * np.sqrt(S_bar.T) * rho_bar
     E = {
         "A'2(0)A''(0)": 2 * np.sum(S_bar * A_bar ** 2),
-        "A'2(0)A''2(0)": 8 * np.sum(A_bar * S_bar * rho_bar * (S_bar * A_bar).T) + 2 * dU2_0 * ddU2_0,
-        "A'3(0)A(3)(0)": 6 * np.sum(S_bar * A_bar ** 3),
-        "A'(0)A''(0)A(3)(0)": 6 * np.sum(S_bar * rho_bar ** 2 * (S_bar * A_bar).T),
-        "A''3(0)": 8 * np.einsum("ij,jk,ki->", rho_star, rho_star, rho_star)
+        "A'2(0)A''2(0)": 0,
+        "A'3(0)A(3)(0)": 0,
+        "A'(0)A''(0)A(3)(0)": 0,
+        "A''3(0)": 0
     }
 
     z1 = d2(1) - d3(1) + d4(1)
@@ -109,6 +109,7 @@ def asian_call(N, S0, K, sigma, T, r, delta):
 
 
 if __name__ == '__main__':
+
     # S0 = 100
     # sigma = 0.2
     # sigmas = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
@@ -120,6 +121,7 @@ if __name__ == '__main__':
     # delta = 0
     # N = 252  # 252 дня в году. Ежедневное усреднение
     # N = int(np.ceil(T * 365 / 7))  # 365 дней в году. Усреднение по неделям
+    #
     # # Table 4
     # # Pricing Asian and Basket Options Via Taylor Expansion
     # Cs = list()
@@ -129,6 +131,26 @@ if __name__ == '__main__':
     #         start = time.time()
     #         print((sigma, K), round(asian_call(S0, K, sigma, T, r, delta), 4))
 
+    # То же самое но до 6 порядка
+    # (0.05, 95) 15.1197
+    # (0.05, 100) 11.3069
+    # (0.05, 105) 7.5562
+    # (0.1, 95) 15.2165
+    # (0.1, 100) 11.6394
+    # (0.1, 105) 8.3913
+    # (0.2, 95) 16.6365
+    # (0.2, 100) 13.7634
+    # (0.2, 105) 11.2134
+    # (0.3, 95) 19.0179
+    # (0.3, 100) 16.5755
+    # (0.3, 105) 14.3774
+    # (0.4, 95) 21.7307
+    # (0.4, 100) 19.569
+    # (0.4, 105) 17.5978
+    # (0.5, 95) 24.5583
+    # (0.5, 100) 22.6032
+    # (0.5, 105) 20.8023
+
     import pandas as pd
     from MonteCarlo import MC_asian_LNMR
 
@@ -136,27 +158,11 @@ if __name__ == '__main__':
     # t0 = pd.to_datetime('2000-12-18')
     temp = pd.read_csv("Data/DCOILWTICO.csv", index_col='DATE', parse_dates=True)
     S0 = float(temp.loc[t0]['DCOILWTICO'])
-    sigma = 0.3
-    sigmas = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
-    K = 20
-    Ks = [95, 100, 105]
-    T = 3
-    Ts = [1, 2, 3, 4, 5]
+    sigma = 0.4
+    K = 40
+    T = 2
     r = 0.05
     delta = 0
-    nsim = 100000
     N = 252
-    sigmas = np.linspace(0.001, 0.3)
-    ACs = list()
-    MCs = list()
-    for sigma in sigmas:
-        AC = asian_call(N, S0, K, sigma, T, r, delta)
-        MC = MC_asian_LNMR(t0, S0, K, sigma, T, r, alpha=0, nsim=nsim, N=N)
-        print(f'Sigma: {sigma}    Approx: {AC}    MC: {MC}')
-        ACs.append(AC)
-        MCs.append(MC)
-    import matplotlib.pyplot as plt
-
-    plt.plot(sigmas, MCs)
-    plt.plot(sigmas, ACs)
-    plt.show()
+    AC = asian_call(N, S0, K, sigma, T, r, delta)
+    print(AC)

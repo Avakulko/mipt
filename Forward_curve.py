@@ -20,17 +20,18 @@ def interp_forward(t0, T, N=252):
 
 
 if __name__ == '__main__':
-    t0 = pd.to_datetime('2015-04-23')
+    # t0 = pd.to_datetime('2015-04-23')
     t0 = pd.to_datetime('2000-12-18')
     T = 1
     N = 252
-    F = interp_forward(t0, T, N)
-
     t = np.linspace(start=0, stop=T, num=T * N)
 
+    F = interp_forward(t0, T, N)
     lnF = np.log(F(t))
     grad = np.gradient(lnF, t)
-    plt.plot(t, F(t))
-    plt.plot(t, np.log(F(t)))
-    plt.plot(t, grad)
+
+    plt.plot(t, F(t), label='F(t)')
+    plt.plot(t, np.log(F(t)), label='ln F(t)')
+    plt.plot(t, grad, label='dlnF(t)/dt')
+    plt.legend()
     plt.show()
