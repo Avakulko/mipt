@@ -6,7 +6,7 @@ np.random.seed(123)
 
 import matplotlib.pyplot as plt
 
-
+# При больших T может случиться что отсутствуют форвардные цены. Тогда интерполяция кривой вернет nan
 def MC_asian_LNMR(t0, S0, K, sigma, alpha, T, r, nsim=10000, N=252):
     def generate_paths():
         total_paths = 10 * nsim
@@ -23,19 +23,20 @@ def MC_asian_LNMR(t0, S0, K, sigma, alpha, T, r, nsim=10000, N=252):
     lnF = np.log(F(t))
     dlnFdt = np.gradient(lnF, t)
 
-    # Commodity
+    # Commodity. Для LNMR
+    chi = (S0 / (F(t))).reshape(-1, 1)
     theta = dlnFdt + alpha * lnF + sigma ** 2 / 4 * (1 - np.exp(-2 * alpha * t)) - 0.5 * sigma ** 2
 
-    # Not commodity
+    # Not commodity. Для GBM
+    # chi = 1
     # theta = r + alpha * np.log(S0) + alpha * r * t + sigma ** 2 / 4 * (1 - np.exp(-2 * alpha * t)) - 0.5 * sigma ** 2
 
     paths = generate_paths()
     asian_calls = list()
-    chi = (S0 / (F(t))).reshape(-1, 1)
+
     for _ in range(20):
         x = paths[:, np.random.randint(paths.shape[1], size=nsim)]
         asian_call = np.exp(-r*T) * np.mean(np.maximum((np.mean(chi * np.exp(x), axis=0) - K), 0))
-        # asian_call = np.exp(-r*T) * np.mean(((np.mean(chi * np.exp(x), axis=0), 0)))
         asian_calls.append(asian_call)
 
         # Траектории S(t)

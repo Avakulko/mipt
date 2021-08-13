@@ -11,6 +11,7 @@ def interp_forward(t0, T, N=252):
     data = [S0]
     for i in range(1, 12 * T + 1):
         temp = pd.read_csv(f"Data/CME_CL{i}.csv", index_col='Date', parse_dates=True)
+        temp.dropna(inplace=True)  # Для некоторых дат отсутствуют форвардные цены
         data.append(temp.loc[t0]['Last'])
 
     t1m = np.linspace(start=0, stop=T * N, num=12 * T + 1) / N

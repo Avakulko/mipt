@@ -15,7 +15,7 @@ if __name__ == '__main__':
     T = 1
     r = 0.05
     delta = 0
-    nsim = 1000000
+    nsim = 10000
     N = 252
     sigmas = np.linspace(0.001, 1, num=10)
     MCs = list()
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         acd4 = ACD4(N, S0, K, sigma, T, r, delta)
         acd6 = ACD6(N, S0, K, sigma, T, r, delta)
         # MC = 0
-        MC = MC_asian_LNMR(t0, S0, K, sigma, T, r, alpha=0, nsim=nsim, N=N)
+        MC = MC_asian_LNMR(t0=t0, S0=S0, K=K, sigma=sigma, T=T, r=r, alpha=0, nsim=nsim, N=N)
         print(f'Sigma: {sigma}    Approx4: {acd4}    Approx6: {acd6}    MC: {MC}')
         MCs.append(MC)
         acd4s.append(acd4)
